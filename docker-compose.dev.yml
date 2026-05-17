@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: nl-query-copilot-postgres
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./backend/dev-fixtures/postgres/init:/docker-entrypoint-initdb.d
+
+  mongo:
+    image: mongo:7
+    container_name: nl-query-copilot-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: app
+    volumes:
+      - ./backend/dev-fixtures/mongo/init:/docker-entrypoint-initdb.d

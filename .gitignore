@@ -1,0 +1,28 @@
+# Environment
+.env
+*.env
+!.env.example
+frontend/.env.local
+frontend/.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/__pycache__/
+backend/test_runtime/
+backend/tests/tmp/
+backend/tests/__pycache__/
+backend/sqlite-fixture-*.db
+backend/*.db-journal
+backend/*.db-shm
+backend/*.db-wal
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log

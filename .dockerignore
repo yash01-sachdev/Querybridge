@@ -1,0 +1,17 @@
+*
+!Dockerfile
+!README.md
+!hf-start.sh
+!backend/
+backend/*
+!backend/__init__.py
+!backend/config.py
+!backend/main.py
+!backend/requirements.txt
+!backend/test.db
+!backend/core/
+!backend/core/**
+!backend/models/
+!backend/models/**
+!backend/routes/
+!backend/routes/**

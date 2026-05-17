@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pymongo
+langgraph
+sqlglot
+sqlparse
+pydantic
+python-dotenv
+requests
