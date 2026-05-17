@@ -32,7 +32,7 @@ Set these in the Space settings:
 - `OLLAMA_KEEP_ALIVE=15m`
 - `OLLAMA_MAX_TOKENS=384`
 - `OLLAMA_MULTI_MODEL_FALLBACK_ENABLED=false`
-- `QUERY_GRAPH_FAST_PATH_ENABLED=false`
+- `QUERY_GRAPH_FAST_PATH_ENABLED=true`
 - `SQLITE_PATH=/app/backend/test.db`
 
 If you also use a custom frontend domain, add it to `ALLOWED_ORIGINS` as a comma-separated second value.

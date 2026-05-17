@@ -3119,12 +3119,79 @@ def _build_python_fast_path_plan(
 ) -> dict[str, Any] | None:
     """Return one deterministic plan for the common demo prompts when the schema supports it."""
 
-    if backend not in {"sqlite", "postgresql"}:
-        return None
-
     lowered_question = question.lower().strip()
     normalized_question = _normalize_question_text(question)
     requested_limit = _extract_requested_limit(normalized_question)
+
+    if backend == "mongodb":
+        if normalized_question == "show user emails" and _mongodb_schema_supports(
+            database_schema,
+            {"users": {"email"}},
+        ):
+            return {
+                "operation": "find",
+                "collection": "users",
+                "intent": "",
+                "match": {},
+                "project": {"email": 1},
+                "sort": {},
+                "limit": requested_limit,
+                "group_by": [],
+                "aggregations": [],
+            }
+
+        if normalized_question == "how many users" and _mongodb_schema_supports(
+            database_schema,
+            {"users": set()},
+        ):
+            return {
+                "operation": "aggregate",
+                "collection": "users",
+                "intent": "count",
+                "match": {},
+                "project": {},
+                "sort": {},
+                "limit": requested_limit,
+                "group_by": [],
+                "aggregations": [],
+            }
+
+        if normalized_question == "count users by status" and _mongodb_schema_supports(
+            database_schema,
+            {"users": {"status"}},
+        ):
+            return {
+                "operation": "aggregate",
+                "collection": "users",
+                "intent": "group",
+                "match": {},
+                "project": {},
+                "sort": {"status": 1},
+                "limit": requested_limit,
+                "group_by": ["status"],
+                "aggregations": [{"function": "COUNT", "field": "*", "alias": "count"}],
+            }
+
+        if normalized_question == "average order amount by user name" and _mongodb_schema_supports(
+            database_schema,
+            {"orders": {"user_name", "amount"}},
+        ):
+            return {
+                "operation": "aggregate",
+                "collection": "orders",
+                "intent": "group",
+                "match": {},
+                "project": {},
+                "sort": {"user_name": 1},
+                "limit": requested_limit,
+                "group_by": ["user_name"],
+                "aggregations": [{"function": "AVG", "field": "amount", "alias": "avg_amount"}],
+            }
+
+        return None
+
+    if backend not in {"sqlite", "postgresql"}:
+        return None
 
     if normalized_question == "show user emails" and _sql_schema_supports(
         database_schema,
@@ -3452,6 +3519,32 @@ def _sql_schema_supports(
             if isinstance(column, dict) and column.get("name")
         }
         if not expected_columns.issubset(actual_columns):
+            return False
+
+    return True
+
+
+def _mongodb_schema_supports(
+    database_schema: dict[str, Any],
+    required_fields: dict[str, set[str]],
+) -> bool:
+    """Return whether the active MongoDB schema contains each required collection and field."""
+
+    collections = database_schema.get("collections", {})
+    if not isinstance(collections, dict):
+        return False
+
+    for collection_name, expected_fields in required_fields.items():
+        collection_info = collections.get(collection_name)
+        if not isinstance(collection_info, dict):
+            return False
+
+        actual_fields = {
+            str(field.get("name", "")).strip()
+            for field in collection_info.get("fields", [])
+            if isinstance(field, dict) and field.get("name")
+        }
+        if not expected_fields.issubset(actual_fields):
             return False
 
     return True
