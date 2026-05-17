@@ -15,3 +15,5 @@ backend/*
 !backend/models/**
 !backend/routes/
 !backend/routes/**
+!backend/tests/
+!backend/tests/**

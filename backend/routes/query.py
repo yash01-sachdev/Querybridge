@@ -18,7 +18,6 @@ from core.comparison import (
 )
 from core.connection import open_backend_connection
 from core.connection_registry import get_connection, register_connection, remove_connection
-from core.eval_runner import run_eval_suite
 from core.ollama_client import OllamaResponseError, OllamaUnavailableError
 from core.query_graph import QueryGraphError, run_query_graph, stream_query_graph
 from core.retriever import retrieve_relevant_schema
@@ -198,6 +197,8 @@ def stream_query(request: QueryRequest) -> StreamingResponse:
 @router.post("/evals/run", response_model=EvalRunResponse)
 def run_built_in_evals(request: EvalRunRequest) -> EvalRunResponse:
     """Run the built-in prompt suite against one backend's demo fixture."""
+
+    from core.eval_runner import run_eval_suite
 
     try:
         eval_result = run_eval_suite(request.backend, router_root_path())
