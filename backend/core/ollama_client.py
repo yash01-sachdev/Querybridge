@@ -10,6 +10,7 @@ import requests
 from config import settings
 
 DEFAULT_OLLAMA_MODEL = "qwen2.5:3b"
+MAX_GENERATION_TIMEOUT_SECONDS = 30
 DEV_FALLBACK_MODEL_ORDER = (
     "qwen2.5:3b",
     "qwen3:8b",
@@ -133,7 +134,7 @@ def _generate(
             response = requests.post(
                 endpoint,
                 json=payload,
-                timeout=settings.ollama_timeout_seconds,
+                timeout=_generation_timeout_seconds(),
             )
         except requests.RequestException as exc:
             raise OllamaUnavailableError(
@@ -239,6 +240,17 @@ def _generation_candidate_models(installed_names: set[str] | None) -> list[str]:
         candidate_models.append(retry_fallback)
 
     return candidate_models
+
+
+def _generation_timeout_seconds() -> int:
+    """Clamp one generation request to a short interactive budget."""
+
+    try:
+        configured_timeout = int(settings.ollama_timeout_seconds)
+    except (TypeError, ValueError):
+        configured_timeout = MAX_GENERATION_TIMEOUT_SECONDS
+
+    return max(1, min(configured_timeout, MAX_GENERATION_TIMEOUT_SECONDS))
 
 
 def _find_retryable_fallback_model(primary_model: str, installed_names: set[str]) -> str | None:

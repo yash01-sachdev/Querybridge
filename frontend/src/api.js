@@ -7,8 +7,8 @@ const DEFAULT_TIMEOUT_MS = 30000;
 const COMPARE_TIMEOUT_MS = 180000;
 const EVAL_TIMEOUT_MS = 300000;
 const STREAM_CONNECT_TIMEOUT_MS = 15000;
-const STREAM_IDLE_TIMEOUT_MS = 120000;
-const STREAM_TIMEOUT_MS = 300000;
+const STREAM_IDLE_TIMEOUT_MS = 30000;
+const STREAM_TIMEOUT_MS = 35000;
 const PLACEHOLDER_ERROR_WORDS = new Set([
   "short",
   "clear",
@@ -353,14 +353,14 @@ function buildStreamTimeoutMessage(abortReason) {
   }
 
   if (abortReason === "idle") {
-    return "The query is still taking too long for Ollama. The model may still be warming up or running slowly.";
+    return "The query exceeded the 30-second response limit. Try a simpler prompt or rerun it after the model warms up.";
   }
 
   if (abortReason === "overall") {
-    return "The query ran too long overall for the browser session. Try again after Ollama warms up, or switch to a smaller model.";
+    return "The query exceeded the app's 30-second limit. Try a simpler prompt or switch to a faster model.";
   }
 
-  return "The query timed out while waiting for Ollama. Try again, or switch to a smaller model.";
+  return "The query timed out before the 30-second limit finished. Try again, or switch to a faster model.";
 }
 
 function normalizeApiErrorMessage(message, fallbackMessage) {

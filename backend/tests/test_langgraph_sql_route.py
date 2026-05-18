@@ -884,6 +884,48 @@ def test_langgraph_route_uses_python_fast_path_for_not_contains_filter(
     assert response.trace.steps[2].details["semantic_mode"] == "python-fast-path"
 
 
+def test_langgraph_route_uses_python_fast_path_for_show_all_orders(
+    sqlite_backend: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Common read-only demo queries should skip Ollama planning when the fast path is enabled."""
+
+    def fail_generate_json(prompt: str, candidate_models: list[str] | None = None) -> dict[str, Any]:
+        raise AssertionError("Python fast path should skip structured model planning for this prompt.")
+
+    monkeypatch.setattr("core.query_graph.generate_json", fail_generate_json)
+    monkeypatch.setattr(
+        "core.query_graph.generate_text",
+        lambda prompt: (_ for _ in ()).throw(
+            AssertionError("Python fast path should also skip model explanations for this prompt.")
+        ),
+    )
+    monkeypatch.setattr("core.query_graph.get_active_model_name", lambda: "qwen2.5:3b")
+    monkeypatch.setattr("core.query_graph._should_use_python_fast_path", lambda: True)
+
+    response = create_query(
+        QueryRequest(
+            question="show all orders",
+            backend="sqlite",
+            connection={"sqlite_path": str(sqlite_backend["path"])},
+        )
+    )
+
+    assert response.repaired is False
+    assert "SELECT orders.id, orders.user_id, orders.amount, orders.status" in response.compiled_query
+    assert "FROM orders" in response.compiled_query
+    assert "ORDER BY orders.id ASC" in response.compiled_query
+    assert response.result.rows == [
+        {"id": 1, "user_id": 1, "amount": 120.5, "status": "completed"},
+        {"id": 2, "user_id": 2, "amount": 60.0, "status": "pending"},
+        {"id": 3, "user_id": 1, "amount": 300.0, "status": "completed"},
+        {"id": 4, "user_id": 3, "amount": 90.0, "status": "cancelled"},
+    ]
+    assert response.trace.steps[0].details["selection_mode"] == "python"
+    assert response.trace.steps[1].details["planning_mode"] == "python-fast-path"
+    assert response.trace.steps[2].details["semantic_mode"] == "python-fast-path"
+
+
 def _build_request(question: str, backend: str, sqlite_path: str) -> QueryRequest:
     """Create one request object for either SQLite or PostgreSQL test paths."""
 

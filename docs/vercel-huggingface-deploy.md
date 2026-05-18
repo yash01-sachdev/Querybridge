@@ -9,7 +9,7 @@ This project is wired for a free demo deployment with:
 
 ## 1. What is already wired
 
-- The backend Docker image starts `ollama serve`, ensures `qwen2.5:3b` is available, then launches FastAPI on port `7860`.
+- The backend Docker image starts `ollama serve`, ensures `qwen2.5:1.5b` is available, then launches FastAPI on port `7860`.
 - The backend defaults `SQLITE_PATH` to the bundled demo file in `backend/test.db`.
 - The frontend reads `VITE_API_URL` and trims trailing slashes automatically.
 - The health endpoint now reports whether the bundled demo database is ready, and the UI shows SQLite as ready without a manual link.
@@ -27,8 +27,8 @@ Create a new Hugging Face Space and choose `Docker` as the SDK. This repo alread
 Set these in the Space settings:
 
 - `ALLOWED_ORIGINS=https://YOUR-VERCEL-PROJECT.vercel.app`
-- `OLLAMA_MODEL=qwen2.5:3b`
-- `OLLAMA_TIMEOUT_SECONDS=60`
+- `OLLAMA_MODEL=qwen2.5:1.5b`
+- `OLLAMA_TIMEOUT_SECONDS=30`
 - `OLLAMA_KEEP_ALIVE=15m`
 - `OLLAMA_MAX_TOKENS=384`
 - `OLLAMA_MULTI_MODEL_FALLBACK_ENABLED=false`
@@ -90,3 +90,5 @@ Once both sides are live:
 ## 6. Important Hugging Face note
 
 Free Spaces can sleep when idle. After a cold wake-up, the first request may take longer while the Space and Ollama warm up. After that, the normal demo flow should be much quicker.
+
+The frontend now enforces a roughly 30-second interactive budget, and the backend caps each Ollama generation request to the same budget. Common demo prompts such as `show all orders`, `show all users`, `show user emails`, and `count orders by status` also bypass Ollama planning entirely when `QUERY_GRAPH_FAST_PATH_ENABLED=true`.

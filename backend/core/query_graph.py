@@ -3124,6 +3124,22 @@ def _build_python_fast_path_plan(
     requested_limit = _extract_requested_limit(normalized_question)
 
     if backend == "mongodb":
+        if normalized_question in {"show all users", "list all users", "show users", "list users"} and _mongodb_schema_supports(
+            database_schema,
+            {"users": {"name", "email", "status"}},
+        ):
+            return {
+                "operation": "find",
+                "collection": "users",
+                "intent": "",
+                "match": {},
+                "project": {"name": 1, "email": 1, "status": 1},
+                "sort": {"name": 1},
+                "limit": requested_limit,
+                "group_by": [],
+                "aggregations": [],
+            }
+
         if normalized_question == "show user emails" and _mongodb_schema_supports(
             database_schema,
             {"users": {"email"}},
@@ -3156,6 +3172,22 @@ def _build_python_fast_path_plan(
                 "aggregations": [],
             }
 
+        if normalized_question in {"show all orders", "list all orders", "show orders", "list orders"} and _mongodb_schema_supports(
+            database_schema,
+            {"orders": {"user_name", "amount", "status"}},
+        ):
+            return {
+                "operation": "find",
+                "collection": "orders",
+                "intent": "",
+                "match": {},
+                "project": {"user_name": 1, "amount": 1, "status": 1},
+                "sort": {"user_name": 1, "status": 1},
+                "limit": requested_limit,
+                "group_by": [],
+                "aggregations": [],
+            }
+
         if normalized_question == "count users by status" and _mongodb_schema_supports(
             database_schema,
             {"users": {"status"}},
@@ -3163,6 +3195,22 @@ def _build_python_fast_path_plan(
             return {
                 "operation": "aggregate",
                 "collection": "users",
+                "intent": "group",
+                "match": {},
+                "project": {},
+                "sort": {"status": 1},
+                "limit": requested_limit,
+                "group_by": ["status"],
+                "aggregations": [{"function": "COUNT", "field": "*", "alias": "count"}],
+            }
+
+        if normalized_question == "count orders by status" and _mongodb_schema_supports(
+            database_schema,
+            {"orders": {"status"}},
+        ):
+            return {
+                "operation": "aggregate",
+                "collection": "orders",
                 "intent": "group",
                 "match": {},
                 "project": {},
@@ -3193,6 +3241,22 @@ def _build_python_fast_path_plan(
     if backend not in {"sqlite", "postgresql"}:
         return None
 
+    if normalized_question in {"show all users", "list all users", "show users", "list users"} and _sql_schema_supports(
+        database_schema,
+        {"users": {"id", "name", "email"}},
+    ):
+        return {
+            "operation": "select",
+            "tables": ["users"],
+            "fields": ["users.id", "users.name", "users.email"],
+            "filters": [],
+            "joins": [],
+            "aggregations": [],
+            "group_by": [],
+            "order_by": [{"field": "users.id", "direction": "ASC"}],
+            "limit": requested_limit,
+        }
+
     if normalized_question == "show user emails" and _sql_schema_supports(
         database_schema,
         {"users": {"email"}},
@@ -3209,6 +3273,22 @@ def _build_python_fast_path_plan(
             "limit": requested_limit,
         }
 
+    if normalized_question in {"show all orders", "list all orders", "show orders", "list orders"} and _sql_schema_supports(
+        database_schema,
+        {"orders": {"id", "user_id", "amount", "status"}},
+    ):
+        return {
+            "operation": "select",
+            "tables": ["orders"],
+            "fields": ["orders.id", "orders.user_id", "orders.amount", "orders.status"],
+            "filters": [],
+            "joins": [],
+            "aggregations": [],
+            "group_by": [],
+            "order_by": [{"field": "orders.id", "direction": "ASC"}],
+            "limit": requested_limit,
+        }
+
     if normalized_question == "how many users" and _sql_schema_supports(
         database_schema,
         {"users": {"id"}},
@@ -3222,6 +3302,22 @@ def _build_python_fast_path_plan(
             "aggregations": [{"function": "COUNT", "field": "*", "alias": "count"}],
             "group_by": [],
             "order_by": [],
+            "limit": requested_limit,
+        }
+
+    if normalized_question == "count orders by status" and _sql_schema_supports(
+        database_schema,
+        {"orders": {"status"}},
+    ):
+        return {
+            "operation": "select",
+            "tables": ["orders"],
+            "fields": ["orders.status"],
+            "filters": [],
+            "joins": [],
+            "aggregations": [{"function": "COUNT", "field": "*", "alias": "count"}],
+            "group_by": ["orders.status"],
+            "order_by": [{"field": "orders.status", "direction": "ASC"}],
             "limit": requested_limit,
         }
 

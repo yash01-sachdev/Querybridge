@@ -194,3 +194,45 @@ def test_generate_text_requested_model_does_not_expand_to_default_candidates(mon
 
     assert response_text == "requested-only reply"
     assert requested_models == ["qwen2.5:3b"]
+
+
+def test_generate_text_caps_generation_timeout_to_interactive_budget(monkeypatch) -> None:
+    """Generation requests should never exceed the short interactive timeout budget."""
+
+    requested_timeouts: list[int] = []
+
+    monkeypatch.setattr(
+        ollama_client,
+        "settings",
+        SimpleNamespace(
+            ollama_base_url="http://127.0.0.1:11434",
+            ollama_model="qwen2.5:3b",
+            ollama_timeout_seconds=90,
+            ollama_keep_alive="10m",
+            ollama_max_tokens=384,
+            ollama_multi_model_fallback_enabled=False,
+        ),
+    )
+    monkeypatch.setattr(
+        ollama_client.requests,
+        "get",
+        lambda *args, **kwargs: _FakeResponse(
+            200,
+            {
+                "models": [
+                    {"name": "qwen2.5:3b"},
+                ]
+            },
+        ),
+    )
+
+    def fake_post(*args, **kwargs):
+        requested_timeouts.append(int(kwargs["timeout"]))
+        return _FakeResponse(200, {"response": "fast enough"})
+
+    monkeypatch.setattr(ollama_client.requests, "post", fake_post)
+
+    response_text = ollama_client.generate_text("Say hello.")
+
+    assert response_text == "fast enough"
+    assert requested_timeouts == [30]
